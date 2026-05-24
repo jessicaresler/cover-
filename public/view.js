@@ -548,7 +548,22 @@
     });
 
     // Save / cancel / delete
-    document.getElementById('saveBtn')?.addEventListener('click', save);
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn?.addEventListener('click', save);
+    // Catch clicks on the disabled Save (browsers don't fire click on
+    // disabled buttons, so listen on the parent bar and check the target).
+    document.getElementById('editBar')?.addEventListener('mousedown', (e) => {
+      const t = e.target.closest('button');
+      if (t && t.id === 'saveBtn' && t.disabled) {
+        const status = document.getElementById('editStatus');
+        if (status) {
+          status.classList.remove('is-nudged');
+          // re-trigger animation
+          void status.offsetWidth;
+          status.classList.add('is-nudged');
+        }
+      }
+    });
     document.getElementById('cancelEditBtn')?.addEventListener('click', () => {
       if (dirty && !confirm('Discard unsaved changes?')) return;
       load();

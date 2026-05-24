@@ -1259,7 +1259,22 @@ body.cv-edit-mode .cv-phone-frame.cv-phone-has-video { cursor: pointer; }
   cursor: pointer;
 }
 .cv-edit-bar button.secondary { background: transparent; color: var(--cream-soft); border: 1px solid var(--border-strong); }
-.cv-edit-bar button:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Disabled state is now visually unambiguous — dimmed AND desaturated so
+   the button clearly looks inactive (previous 0.5 opacity wasn't strong
+   enough; users would click and wonder why "nothing happened"). */
+.cv-edit-bar button:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+}
+.cv-edit-bar button:disabled:hover { opacity: 0.32; }
+/* Tiny pulse on the status text when the user clicks a disabled Save —
+   makes it obvious there's nothing to save right now. */
+@keyframes cv-edit-status-nudge {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(-2px); opacity: 0.7; }
+}
+.cv-edit-status.is-nudged { animation: cv-edit-status-nudge 360ms ease; }
 
 .cv-editable {
   outline: 1px dashed transparent;
