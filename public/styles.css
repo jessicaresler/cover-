@@ -1710,10 +1710,10 @@ body.cv-presenter-mode .cv-export-deck > section {
 body.cv-presenter-mode .cv-export-deck {
   scroll-snap-type: y mandatory;
 }
-/* Don't double-center the about slides — they already have their own
-   layout via .cv-bg-section. Just ensure they fill the viewport. */
+/* About slides already use display:flex from .cv-bg-section to vertically
+   center their content — don't override the display here, just ensure
+   the slide fills the viewport so presenter scroll-snap works. */
 body.cv-presenter-mode .cv-export-deck > .cv-export-about-slide {
-  display: block;
   min-height: 100vh;
 }
 
