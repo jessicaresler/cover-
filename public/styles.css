@@ -997,9 +997,32 @@ body.cv-edit-mode .cv-phone-frame.cv-phone-has-video { cursor: pointer; }
   max-width: 1100px;
   display: flex;
   flex-direction: column;
+  text-align: center;    /* center prose by default — manifesto vibe */
   gap: 1.5rem;
 }
+/* .center stays as a no-op hook for back-compat (text-align: center is now default) */
 .cv-bg-section-content.center { text-align: center; align-items: center; }
+
+/* For multi-column structures (creds bullets, founder cards, services),
+   shrink each grid to its content width and center the whole group inside
+   the section. This way the visual mass actually centers — the previous
+   1fr-column layout filled the full 1100px but text inside cells was left-
+   aligned, so short bullets visually anchored to the left of the page. */
+.cv-bg-section-content .cv-creds-list {
+  /* !important to beat the inline style="grid-template-columns: 1fr 1fr"
+     used in about.html and export.js when rendering this list */
+  grid-template-columns: auto auto !important;
+  justify-content: center;
+  text-align: left;
+  padding: 0;
+  margin: 0 auto;
+}
+.cv-bg-section-content .cv-founders {
+  justify-content: center;
+}
+.cv-bg-section-content .cv-founders .cv-founder-card { text-align: left; }
+.cv-bg-section-content .cv-services-grid { justify-content: center; }
+.cv-bg-section-content .cv-service-tags { justify-content: center; }
 
 .cv-bg-section-controls {
   position: absolute;
