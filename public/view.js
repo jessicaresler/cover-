@@ -574,7 +574,11 @@
       input.addEventListener('input', () => { captureFromDOM(); setDirty(true); });
     });
 
-    // Up / down / remove on each media item
+    // Up / down / remove on each media item.
+    // IMPORTANT: setDirty(true) MUST come after render() — render() rebuilds
+    // detailBody.innerHTML, which destroys and re-creates the editBar (where
+    // the Save button + dirty status live). Setting dirty before render is
+    // wiped out when the fresh template lands with `<button disabled>`.
     document.querySelectorAll('.cv-media-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         if (btn.disabled) return;
@@ -584,22 +588,22 @@
         if (action === 'up' && idx > 0) {
           captureFromDOM();
           [cs.media[idx - 1], cs.media[idx]] = [cs.media[idx], cs.media[idx - 1]];
-          setDirty(true);
           render();
           setEditableMode(editMode);
+          setDirty(true);
         } else if (action === 'down' && idx < cs.media.length - 1) {
           captureFromDOM();
           [cs.media[idx + 1], cs.media[idx]] = [cs.media[idx], cs.media[idx + 1]];
-          setDirty(true);
           render();
           setEditableMode(editMode);
+          setDirty(true);
         } else if (action === 'remove') {
           if (!confirm('Remove this media item? The file will be cleaned up if nothing else uses it.')) return;
           captureFromDOM();
           const removed = cs.media.splice(idx, 1)[0];
-          setDirty(true);
           render();
           setEditableMode(editMode);
+          setDirty(true);
           // Best-effort: ask server to delete the underlying file. The server
           // refuses (409) if anything else still references the URL, which we
           // silently ignore — the UI removal already succeeded.
