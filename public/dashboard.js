@@ -84,13 +84,16 @@
   }
 
   function cardHTML(cs) {
-    const tags = (cs.tags || []).slice(0, 3);
+    // Capped at 2 (was 3) so every card's tag row stays a single line —
+    // keeps cards visually identical regardless of how many capabilities
+    // a study has.
+    const tags = (cs.tags || []).slice(0, 2);
     const overflow = (cs.tags || []).length - tags.length;
     const tagHTML = tags.map((t) => `<span class="cs-tag">${escapeHtml(t)}</span>`).join('') +
       (overflow > 0 ? `<span class="cs-tag cs-tag-overflow">+${overflow}</span>` : '');
 
-    // Headline + suffix as structured spans (no inline styles — CSS handles
-    // sizing so every card reads the same regardless of phrase length)
+    // Headline + suffix as structured spans. Only shown on cards WITHOUT a
+    // hero image — when media is present we let the photo/video speak.
     const headlineHTML = cs.headline
       ? `<mark>${escapeHtml(cs.headline)}</mark>${cs.headlineSuffix ? `<span class="cs-card-preview-suffix">${escapeHtml(cs.headlineSuffix)}</span>` : ''}`
       : `<span class="cs-card-preview-fallback">${escapeHtml(cs.client || 'Case study')}</span>`;
@@ -112,11 +115,14 @@
       ? `<div class="cs-card-scale">${scaleBits.map(escapeHtml).join(' <span class="cs-card-scale-sep">·</span> ')}</div>`
       : '';
 
-    // Media badge — small indicator that there are multiple media items
+    // Media count is inlined into the tier eyebrow (was a floating badge in
+    // the preview corner). Reads as e.g. "TRAVEL · TECH · HOSPITALITY · 4 MEDIA"
     const mediaCount = media.length;
-    const mediaBadgeHTML = mediaCount > 1
-      ? `<span class="cs-card-media-badge" title="${mediaCount} media items">${mediaCount} media</span>`
-      : '';
+    const tierBits = [
+      (cs.industries || []).slice(0, 3).join(' · ') || cs.tier || ''
+    ];
+    if (mediaCount > 1) tierBits.push(`${mediaCount} media`);
+    const tierEyebrow = tierBits.filter(Boolean).join(' · ');
 
     const isSelected = selected.has(cs.id);
     const isFocused = focusedCardId === cs.id;
@@ -134,10 +140,9 @@
           <div class="cs-card-preview" data-has-media="${hero ? 'true' : 'false'}">
             ${previewMediaHTML}
             <div class="cs-card-preview-headline">${headlineHTML}</div>
-            ${mediaBadgeHTML}
           </div>
           <div class="cs-card-info">
-            <div class="cs-card-tier">${escapeHtml((cs.industries || []).slice(0, 3).join(' · ') || cs.tier || '')}</div>
+            <div class="cs-card-tier">${escapeHtml(tierEyebrow)}</div>
             <div class="cs-card-title">${escapeHtml(cs.client || '')} <span class="cs-scope">| ${escapeHtml(cs.scope || '')}</span></div>
             ${scaleLineHTML}
             <div class="cs-card-tags">${tagHTML}</div>
