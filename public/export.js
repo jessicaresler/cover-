@@ -3,6 +3,7 @@
   const titleEl = document.getElementById('exportTitle');
   const printBtn = document.getElementById('printBtn');
   const copyBtn = document.getElementById('copyLinkBtn');
+  const presentBtn = document.getElementById('presentBtn');
 
   function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, (c) => ({
@@ -418,6 +419,110 @@
     } catch {
       alert('Could not copy. URL: ' + window.location.href);
     }
+  });
+
+  // ---------- Presenter mode ----------
+  // Treat every top-level section in the deck as one slide. Arrow keys +
+  // space advance, Escape exits, P toggles. The CSS in styles.css does the
+  // heavy lifting (full-viewport slides, faded toolbar) when body has the
+  // cv-presenter-mode class.
+  let presenterOn = false;
+  let presenterIdx = 0;
+  let presenterControls = null;
+
+  function getSlides() {
+    return Array.from(deck.querySelectorAll(':scope > section'));
+  }
+
+  function updatePresenterCounter() {
+    if (!presenterControls) return;
+    const c = presenterControls.querySelector('.cv-presenter-counter');
+    if (c) c.textContent = `${presenterIdx + 1} / ${getSlides().length}`;
+  }
+
+  function goToSlide(i) {
+    const slides = getSlides();
+    if (!slides.length) return;
+    presenterIdx = Math.max(0, Math.min(slides.length - 1, i));
+    slides[presenterIdx].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    updatePresenterCounter();
+  }
+
+  function onPresenterKey(e) {
+    if (!presenterOn) return;
+    // Ignore when typing in a field (defensive — no inputs on the export
+    // page right now, but future-proof)
+    if (e.target.matches?.('input, textarea, [contenteditable="true"]')) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault();
+      goToSlide(presenterIdx + 1);
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      goToSlide(presenterIdx - 1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      goToSlide(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      goToSlide(getSlides().length - 1);
+    } else if (e.key === 'Escape') {
+      setPresenterMode(false);
+    }
+  }
+
+  function buildPresenterControls() {
+    const el = document.createElement('div');
+    el.className = 'cv-presenter-controls';
+    el.innerHTML = `
+      <button class="cv-presenter-btn" data-action="prev" aria-label="Previous slide" title="Previous (↑)">↑</button>
+      <span class="cv-presenter-counter" aria-live="polite">1 / 1</span>
+      <button class="cv-presenter-btn" data-action="next" aria-label="Next slide" title="Next (↓)">↓</button>
+      <button class="cv-presenter-btn cv-presenter-exit" data-action="exit" aria-label="Exit presentation" title="Exit (Esc)">×</button>
+    `;
+    el.querySelector('[data-action="prev"]').addEventListener('click', () => goToSlide(presenterIdx - 1));
+    el.querySelector('[data-action="next"]').addEventListener('click', () => goToSlide(presenterIdx + 1));
+    el.querySelector('[data-action="exit"]').addEventListener('click', () => setPresenterMode(false));
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function setPresenterMode(on) {
+    presenterOn = !!on;
+    document.body.classList.toggle('cv-presenter-mode', presenterOn);
+    if (presentBtn) presentBtn.textContent = presenterOn ? 'Exit presenting' : 'Present';
+
+    if (presenterOn) {
+      if (!presenterControls) presenterControls = buildPresenterControls();
+      presenterControls.style.display = 'flex';
+      document.addEventListener('keydown', onPresenterKey);
+      // Jump to whatever slide is most-visible right now (so toggling P
+      // mid-scroll doesn't snap you back to slide 0).
+      const slides = getSlides();
+      const mid = window.scrollY + window.innerHeight / 2;
+      let best = 0, bestDist = Infinity;
+      slides.forEach((s, i) => {
+        const r = s.getBoundingClientRect();
+        const top = window.scrollY + r.top;
+        const d = Math.abs(top + r.height / 2 - mid);
+        if (d < bestDist) { bestDist = d; best = i; }
+      });
+      // Defer one tick so the CSS layout (slides become 100vh) lands first
+      requestAnimationFrame(() => goToSlide(best));
+    } else {
+      if (presenterControls) presenterControls.style.display = 'none';
+      document.removeEventListener('keydown', onPresenterKey);
+    }
+  }
+
+  presentBtn?.addEventListener('click', () => setPresenterMode(!presenterOn));
+
+  // Global 'P' shortcut to toggle (matches WRAP). Ignored when typing.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'p' && e.key !== 'P') return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return; // don't hijack Cmd+P (print)
+    if (e.target.matches?.('input, textarea, [contenteditable="true"]')) return;
+    e.preventDefault();
+    setPresenterMode(!presenterOn);
   });
 
   load().catch((err) => {
