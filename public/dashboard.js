@@ -89,9 +89,21 @@
     const tagHTML = tags.map((t) => `<span class="cs-tag">${escapeHtml(t)}</span>`).join('') +
       (overflow > 0 ? `<span class="cs-tag cs-tag-overflow">+${overflow}</span>` : '');
 
+    // Headline + suffix as structured spans (no inline styles — CSS handles
+    // sizing so every card reads the same regardless of phrase length)
     const headlineHTML = cs.headline
-      ? `<mark>${escapeHtml(cs.headline)}</mark>${cs.headlineSuffix ? `<br/><span style="font-weight:600;font-size:0.6em;color:var(--cream-soft)">${escapeHtml(cs.headlineSuffix)}</span>` : ''}`
-      : escapeHtml(cs.client || '');
+      ? `<mark>${escapeHtml(cs.headline)}</mark>${cs.headlineSuffix ? `<span class="cs-card-preview-suffix">${escapeHtml(cs.headlineSuffix)}</span>` : ''}`
+      : `<span class="cs-card-preview-fallback">${escapeHtml(cs.client || 'Case study')}</span>`;
+
+    // Hero media as the preview background. Server projects legacy video/poster
+    // into media[0] so this works for old records too.
+    const media = Array.isArray(cs.media) ? cs.media : [];
+    const hero = media[0];
+    const previewMediaHTML = hero
+      ? (hero.type === 'video'
+          ? `<video class="cs-card-preview-media" src="${escapeHtml(hero.url)}" muted playsinline preload="metadata"${hero.poster ? ` poster="${escapeHtml(hero.poster)}"` : ''}></video>`
+          : `<img class="cs-card-preview-media" src="${escapeHtml(hero.url)}" alt="" loading="lazy" />`)
+      : '';
 
     // Compressed scale line — only shows fields with values, omits row entirely if all empty
     const sc = cs.scale || {};
@@ -101,7 +113,7 @@
       : '';
 
     // Media badge — small indicator that there are multiple media items
-    const mediaCount = Array.isArray(cs.media) ? cs.media.length : 0;
+    const mediaCount = media.length;
     const mediaBadgeHTML = mediaCount > 1
       ? `<span class="cs-card-media-badge" title="${mediaCount} media items">${mediaCount} media</span>`
       : '';
@@ -119,7 +131,8 @@
           </button>
         </div>
         <a class="cs-card-link" href="/view?id=${encodeURIComponent(cs.id)}">
-          <div class="cs-card-preview">
+          <div class="cs-card-preview" data-has-media="${hero ? 'true' : 'false'}">
+            ${previewMediaHTML}
             <div class="cs-card-preview-headline">${headlineHTML}</div>
             ${mediaBadgeHTML}
           </div>
