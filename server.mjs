@@ -481,6 +481,34 @@ app.post('/api/backup/run', requireAuth, async (_req, res) => {
   }
 });
 
+// Token-protected endpoint for external cron (GitHub Actions).
+// Independent of user session auth — uses bearer token from COVER_BACKUP_CRON_TOKEN.
+// This is the primary backup trigger; the in-process setTimeout scheduler in
+// backup.mjs is a quiet fallback for when the machine happens to be awake.
+app.post('/api/backup/cron', async (req, res) => {
+  const expected = process.env.COVER_BACKUP_CRON_TOKEN;
+  if (!expected) {
+    return res.status(503).json({ ok: false, error: 'cron_token_not_configured' });
+  }
+  const header = req.get('authorization') || '';
+  const m = header.match(/^Bearer\s+(.+)$/i);
+  const presented = m ? m[1].trim() : '';
+  // Constant-time comparison to avoid timing attacks
+  const a = Buffer.from(presented);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    return res.status(401).json({ ok: false, error: 'unauthorized' });
+  }
+  try {
+    const result = await runBackup({ dataFile: DATA_FILE, mediaDir: MEDIA_DIR });
+    console.log('[backup] cron snapshot complete:', JSON.stringify(result));
+    res.json(result);
+  } catch (err) {
+    console.error('[backup] cron run failed:', err);
+    res.status(500).json({ ok: false, error: err.message || 'backup_failed' });
+  }
+});
+
 // ---------- Static + page routes ----------
 const PUBLIC_DIR = join(__dirname, 'public');
 

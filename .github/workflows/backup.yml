@@ -1,0 +1,39 @@
+name: Nightly R2 backup
+
+# Triggers the Cover app's /api/backup/cron endpoint, which mirrors
+# data/case-studies.json + data/media/ to Cloudflare R2.
+#
+# Why GitHub Actions (vs in-process scheduler): the Fly machine auto-stops
+# when idle, so a setTimeout-based scheduler can miss windows. GitHub Actions
+# cron runs on GitHub's infra and wakes the Fly app via HTTP, guaranteeing
+# the snapshot fires every day even if no one used the app.
+
+on:
+  schedule:
+    # 07:00 UTC daily (~3am ET in winter, ~2am ET in summer)
+    - cron: '0 7 * * *'
+  # Allow manual runs from the Actions tab for testing / ad-hoc snapshots
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger backup
+        env:
+          TOKEN: ${{ secrets.COVER_BACKUP_CRON_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::COVER_BACKUP_CRON_TOKEN repo secret is not set"
+            exit 1
+          fi
+          # -fsS: fail on HTTP >=400, silent progress, still show errors
+          # --max-time 600: cap at 10 minutes (large media uploads can take a while on first run)
+          # -w: append HTTP status + total time to output for the log
+          curl -fsS --max-time 600 \
+            -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/json" \
+            -w "\nHTTP %{http_code} in %{time_total}s\n" \
+            https://cape-cover.fly.dev/api/backup/cron
