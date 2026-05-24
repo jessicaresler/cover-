@@ -96,23 +96,24 @@
       </div>
     `;
 
-    // Read-mode thumbnail strip — only renders when there's more than the hero.
-    // Clicking a thumb opens the lightbox.
-    const readStripHTML = media.length > 1 ? `
-      <div class="cv-readmedia-strip" id="readMediaStrip" aria-label="More from this case study">
-        ${media.slice(1).map((m, j) => {
-          const i = j + 1; // original index in cs.media
-          const thumb = m.type === 'video'
-            ? `<video src="${escapeHtml(m.url)}" muted playsinline preload="metadata"${m.poster ? ` poster="${escapeHtml(m.poster)}"` : ''}></video>`
-            : `<img src="${escapeHtml(m.url)}" alt="${escapeHtml(m.caption || '')}" />`;
-          return `
-            <button class="cv-readmedia-thumb" data-media-open-index="${i}" type="button" aria-label="${escapeHtml(m.caption || (m.type === 'video' ? 'View video' : 'View image'))}">
-              ${thumb}
-              ${m.type === 'video' ? '<span class="cv-readmedia-play" aria-hidden="true">&#9658;</span>' : ''}
-              ${m.caption ? `<span class="cv-readmedia-caption">${escapeHtml(m.caption)}</span>` : ''}
-            </button>
-          `;
-        }).join('')}
+    // Read-mode marquee — slow horizontal auto-scroll of secondary media.
+    // Decorative / showcase-only: items are not clickable, no lightbox.
+    // The hero in the phone frame remains interactive (video play button).
+    // We render the item list THREE times back-to-back so the CSS keyframe
+    // can translate by -33.333% for a seamless loop, even when the user has
+    // only a couple of secondary items (a single copy could be narrower than
+    // the container, leaving empty space on one side mid-loop).
+    const marqueeItems = media.slice(1);
+    const marqueeItemHTML = (m) => {
+      const inner = m.type === 'video'
+        ? `<video src="${escapeHtml(m.url)}" muted playsinline preload="metadata"${m.poster ? ` poster="${escapeHtml(m.poster)}"` : ''}></video>`
+        : `<img src="${escapeHtml(m.url)}" alt="${escapeHtml(m.caption || '')}" loading="lazy" />`;
+      return `<div class="cv-marquee-item" aria-hidden="true">${inner}</div>`;
+    };
+    const oneSet = marqueeItems.map(marqueeItemHTML).join('');
+    const readStripHTML = marqueeItems.length > 0 ? `
+      <div class="cv-marquee" aria-label="More from this case study">
+        <div class="cv-marquee-track">${oneSet}${oneSet}${oneSet}</div>
       </div>
     ` : '';
 
