@@ -14,6 +14,24 @@
     }[c]));
   }
 
+  // Strip all formatting on paste into editable fields. Without this, pasting
+  // from Google Docs / Word / a styled webpage brings along inline color/font
+  // styles — most commonly black text, which is invisible on Cover's dark bg.
+  // Event delegation covers both initial render and dynamically-added editables.
+  document.addEventListener('paste', (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (!t.classList.contains('cv-editable')) return;
+    if (!t.isContentEditable) return;
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData)?.getData('text/plain') || '';
+    // execCommand is deprecated but still the most reliable way to insert at
+    // the caret while keeping undo history intact. Triggers an input event
+    // automatically, which our existing wireEditing listener catches to mark
+    // the form dirty.
+    document.execCommand('insertText', false, text);
+  });
+
   function getId() {
     return new URLSearchParams(window.location.search).get('id');
   }

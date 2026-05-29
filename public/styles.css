@@ -1295,6 +1295,16 @@ body.cv-edit-mode .cv-phone-frame.cv-phone-has-video { cursor: pointer; }
   border-radius: 4px;
   transition: outline-color 0.15s, background 0.15s;
 }
+/* Defensive against pasted content carrying foreign color/background styles
+   (e.g. black text from Google Docs, which is invisible on Cover's dark bg).
+   The paste handler in view.js/about.js strips formatting on paste — this
+   covers any path that bypasses paste (drag-drop, programmatic insert, etc.). */
+.cv-editable * {
+  color: inherit !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  font-family: inherit !important;
+}
 body.cv-edit-mode .cv-editable {
   outline-color: rgba(245,236,217,0.25);
   cursor: text;
