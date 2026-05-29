@@ -294,8 +294,10 @@
     if (media.length <= 1) return '';
     const extras = media.slice(1);
     const tileHTML = (m) => {
+      // Auto-play muted on loop so the export marquee actually animates
+      // visually instead of sitting on static first frames.
       const inner = m.type === 'video'
-        ? `<video src="${escapeHtml(m.url)}" muted playsinline preload="metadata"${m.poster ? ` poster="${escapeHtml(m.poster)}"` : ''}></video>`
+        ? `<video src="${escapeHtml(m.url)}" muted loop autoplay playsinline preload="auto"${m.poster ? ` poster="${escapeHtml(m.poster)}"` : ''}></video>`
         : `<img src="${escapeHtml(m.url)}" alt="${escapeHtml(m.caption || '')}" loading="lazy" />`;
       return `
         <figure class="cv-export-marquee-item" aria-hidden="true">

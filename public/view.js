@@ -123,8 +123,13 @@
     // the container, leaving empty space on one side mid-loop).
     const marqueeItems = media.slice(1);
     const marqueeItemHTML = (m) => {
+      // Marquee videos auto-play muted on loop so the carousel actually moves
+      // visually instead of sitting on static first frames. preload="auto" so
+      // the file is ready by the time the user scrolls. wireMarquee() below
+      // also explicitly calls .play() to bypass Chrome's "background media"
+      // pause heuristic for muted-only videos.
       const inner = m.type === 'video'
-        ? `<video src="${escapeHtml(m.url)}" muted playsinline preload="metadata"${m.poster ? ` poster="${escapeHtml(m.poster)}"` : ''}></video>`
+        ? `<video src="${escapeHtml(m.url)}" muted loop autoplay playsinline preload="auto"${m.poster ? ` poster="${escapeHtml(m.poster)}"` : ''}></video>`
         : `<img src="${escapeHtml(m.url)}" alt="${escapeHtml(m.caption || '')}" loading="lazy" />`;
       return `<div class="cv-marquee-item" aria-hidden="true">${inner}</div>`;
     };
@@ -256,6 +261,27 @@
     wireEditing();
     wireReadStrip();
     wirePhoneVideo();
+    wireMarqueeVideos();
+  }
+
+  // Marquee videos are muted-only and would normally autoplay just from the
+  // attribute, but Chrome's "video-only background media" policy pauses them
+  // anyway on first paint. Calling .play() from script is treated more
+  // permissively.
+  //
+  // Browsers also commonly DON'T start loading multiple video elements with
+  // the same src — when the marquee replicates 3 copies of each item for the
+  // seamless loop, only the first instance actually fetches. Explicit .load()
+  // forces each element to fetch independently. Silently swallow rejections.
+  function wireMarqueeVideos() {
+    document.querySelectorAll('.cv-marquee-item video').forEach((v) => {
+      const tryPlay = () => v.play().catch(() => {});
+      v.addEventListener('loadeddata', tryPlay, { once: true });
+      v.addEventListener('canplay', tryPlay, { once: true });
+      // Force load even if browser would otherwise defer
+      try { v.load(); } catch {}
+      if (v.readyState >= 2) tryPlay();
+    });
   }
 
   // Chrome 117+ pauses muted-only videos as "video-only background media" to
